@@ -1,0 +1,3 @@
+# liferay-reports
+
+Full suite to monitorize and generate reports in Liferay framework
