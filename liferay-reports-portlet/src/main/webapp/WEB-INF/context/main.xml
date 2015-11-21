@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+       http://www.springframework.org/schema/context 
+       http://www.springframework.org/schema/context/spring-context-3.2.xsd
+       http://www.springframework.org/schema/mvc 
+       http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+       http://www.springframework.org/schema/task 
+       http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+       
+    
+    <!-- Scan Task -->
+	<context:annotation-config />
+	<mvc:annotation-driven />
+	<context:component-scan base-package="com.cgi.ecm.reports.spring" />
+	<task:annotation-driven />
+
+	<import resource="classpath*:reportsAgentContext.xml"/>
+
+	<!--&lt;!&ndash; Scan for Spring beans declared via annotations.&ndash;&gt; -->
+	<!--<context:component-scan base-package="com.cgi.ecm.reports">-->
+	<!--<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />-->
+	<!--</context:component-scan>-->
+	<!-- -->
+	<!--<context:component-scan base-package="com.cgi.ecm.reports.client"/>-->
+
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		<property name="basenames">
+			<list>
+				<value>classpath:/Language</value>
+			</list>
+		</property>
+	</bean>
+
+<!-- 	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"> -->
+<!--     	<property name="driverClassName" value="${jdbc.driverClassName}" /> -->
+<!--     	<property name="url" value="${jdbc.databaseurl}" /> -->
+<!-- 		<property name="username" value="${jdbc.username}" /> -->
+<!-- 		<property name="password" value="${jdbc.password}" />		 -->
+<!--     </bean>        -->
+
+       
+<!--     <bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean"> -->
+<!--         <property name="dataSource" ref="dataSource"></property> -->
+<!--         <property name="configLocation"> -->
+<!--             <value>classpath:hibernate.cfg.xml</value> -->
+<!--         </property> -->
+<!--         <property name="configurationClass"> -->
+<!--             <value>org.hibernate.cfg.AnnotationConfiguration</value> -->
+<!--         </property> -->
+<!--         <property name="hibernateProperties"> -->
+<!--             <props> -->
+<!--                 <prop key="hibernate.dialect">${jdbc.dialect}</prop> -->
+<!--                 <prop key="hibernate.jdbc.batch_size">50</prop> -->
+<!--                 <prop key="hibernate.show_sql">false</prop> -->
+<!--                 <prop key="format_sql">false</prop> -->
+<!-- 				<prop key="use_sql_comments">false</prop> -->
+<!--                 <prop key="hibernate.hbm2ddl.auto">update</prop> -->
+<!--                 <prop key="hibernate.dbcp.testOnBorrow">true</prop>        		 -->
+<!--         		<prop key="hibernate.dbcp.validationQuery">select 1 from dual</prop>   -->
+<!--             </props> -->
+<!--         </property> -->
+<!--     </bean> -->
+    
+<!--     <tx:annotation-driven /> -->
+      
+<!--     <bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager"> -->
+<!--         <property name="sessionFactory" ref="sessionFactory"></property> -->
+<!--     </bean> -->
+    
+<!--     <bean id="openSessionInViewInterceptor" class="org.springframework.orm.hibernate3.support.OpenSessionInViewInterceptor"> -->
+<!-- 		<property name="sessionFactory" ref="sessionFactory" /> -->
+<!-- 	</bean> -->
+	
+	<!-- Environment properties Locations for Profile -->
+	<beans profile="dev">
+    	<context:property-placeholder location="classpath*:/profiles/dev/ecm_reports.properties" />
+    </beans>
+
+    
+    <beans profile="prod">
+    	<context:property-placeholder location="classpath*:/profiles/prod/ecm_reports.properties" />
+    </beans>
+
+	
+</beans>       

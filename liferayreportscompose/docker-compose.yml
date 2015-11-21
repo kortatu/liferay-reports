@@ -1,0 +1,18 @@
+mysqljaskula:
+  build: mysql
+  ports:
+    - "3307:3306"
+#  environment:
+reportsmongo:
+  image: mongo:3
+jaskula:
+  image: com.cgi.ecm.reports/jaskula:0.0.1-SNAPSHOT
+  links:
+   - mysqljaskula:mysql
+   - pageviewrestservice:rest-service
+pageviewrestservice:
+  image: com.cgi.ecm/spring-boot-mongodb:0.0.1-SNAPSHOT
+  ports:
+   - "8081:8081"
+  links:
+   - reportsmongo:mongo

@@ -1,0 +1,5 @@
+http://localhost:8080/web/guest/contenido
+http://localhost:8080/web/guest/pepe
+http://localhost:8080/web/guest/contenido?p_p_auth=VfrxTGn1&p_p_id=49&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view&_49_struts_action=%2Fmy_sites%2Fview&_49_groupId=10181&_49_privateLayout=false
+http://localhost:8080/web/guest/blog
+

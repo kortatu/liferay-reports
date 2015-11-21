@@ -1,0 +1,116 @@
+buildscript {
+    ext {
+        springBootVersion = '1.2.3.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath 'se.transmode.gradle:gradle-docker:1.2'
+    }
+}
+
+plugins {
+    id 'org.asciidoctor.convert' version '1.5.2'
+    id 'com.github.jruby-gradle.base' version '0.1.5'
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'spring-boot'
+apply plugin: 'docker'
+apply plugin: 'maven'
+apply plugin: 'org.asciidoctor.convert'
+
+
+version = '0.0.1-SNAPSHOT'
+jar {
+    baseName = 'pageview-rest-service'
+}
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("org.springframework.boot:spring-boot-starter-data-rest")
+    compile("org.springframework.boot:spring-boot-starter-hateoas")
+    compile("org.springframework.integration:spring-integration-core")
+//tag::csvLibrary[]
+    compile("net.sf.supercsv:super-csv:2.3.1")
+//end::csvLibrary[]
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+
+    gems 'rubygems:asciidoctor-diagram:1.2.0'
+}
+
+eclipse {
+    classpath {
+         containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
+         containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7'
+    }
+}
+
+//Boot plugins
+bootRun {
+    if ( project.hasProperty('args') ) {
+        args project.args.split('\\s+')
+    }
+}
+
+bootRepackage {
+	classifier = 'exe'
+}
+
+
+//Maven 
+install {
+    repositories.mavenInstaller {
+        pom.project {
+          parent { 
+            groupId 'org.springframework.boot'
+            artifactId 'spring-boot-starter-parent'
+            version "1.2.2.RELEASE"
+          }
+        }
+    }
+}
+
+docker {    
+    group 'com.cgi.ecm'
+    maintainer 'Álvaro González de Paz "alvaro.gonzalez@cgi.com"'
+    useApi true
+    hostUrl 'http://localhost:4243'
+    baseImage "java"
+}
+
+distDocker { 
+  exposePort 8081 
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}
+
+asciidoctor {
+    sources { include '*.adoc' }
+    dependsOn jrubyPrepareGems
+    requires = ['asciidoctor-diagram']
+    gemPath = jrubyPrepareGems.outputDir
+
+    attributes	'build-gradle': file('build.gradle'),
+            'source-highlighter' : 'coderay',
+            'imagesdir':'images',
+            'toc':'left',
+            'icons': 'font',
+            'setanchors':'true',
+            'idprefix':'',
+            'idseparator':'-',
+            'docinfo1':'true'
+}

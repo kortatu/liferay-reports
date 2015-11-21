@@ -1,0 +1,1 @@
+function() {emit(this.viewer.session, 1)}

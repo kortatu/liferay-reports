@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+     http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-4.1.xsd
+     http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.1.xsd">
+
+    <context:annotation-config />
+    <context:component-scan base-package="com.cgi.ecm.reports"/>
+    <bean id="jaskulaPipeline" class="com.cgi.ecm.reports.jaskula.JaskulaPipeline" />
+	<bean id="restReportsActivators" class="com.cgi.ecm.reports.jaskula.RestReportsActivators" />
+	<bean id="externalJaskulaConfig" class="com.cgi.ecm.reports.ExternalJaskulaConfig" lazy-init="true"/>
+    
+	<int:gateway id="pageViewerClient"
+         service-interface="com.cgi.ecm.reports.client.PageViewerClientI"
+         default-request-channel="requestChannel" />
+             	
+    <int:channel id="requestChannel"/>
+
+    <!--Two transformations in a row but only the first needs to be in the portal request thread-->
+    <int:transformer id="testTransformer" ref="testTransformerBean" input-channel="requestChannel"
+		output-channel="transformedChannel"/>
+    <bean id="testTransformerBean" class="com.cgi.ecm.reports.client.PortletsSetupTransformer"/>
+
+    <int:channel id="transformedChannel">
+        <int:dispatcher task-executor="toExternalPool"/>
+    </int:channel>
+
+    <int:object-to-map-transformer id="multiPostTransformer"  input-channel="transformedChannel" output-channel="mapObjectsChannel" auto-startup="true"/>
+
+    <int:channel id="mapObjectsChannel"/>
+
+    <int:router input-channel="mapObjectsChannel" default-output-channel="multipostInputChannel" >
+        <bean class="com.cgi.ecm.reports.JaskulaRouter"/>
+    </int:router>
+
+    <task:executor id="toExternalPool" queue-capacity="10" pool-size="5" keep-alive="5" rejection-policy="CALLER_RUNS"/>
+
+</beans>

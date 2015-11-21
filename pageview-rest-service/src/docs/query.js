@@ -1,0 +1,1 @@
+db.pageView.find ( { 'advanced.scribeContent' : {$exists: true }}).forEach(printjson)

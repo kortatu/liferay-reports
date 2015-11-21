@@ -1,0 +1,28 @@
+# additional data require to create the Docker image
+packaging:
+  add:
+    - target/${project.build.finalName}-exe.jar
+# how long in milliseconds to sleep after start-up (default 0), note health checks are usually faster and more reliable
+sleep: 2000
+# log failures (default true, 10)
+logOnFailure: true
+maxLogLines: 200
+# if this should be enabled (default true)
+enabled: true
+# expose the container's IP (see below)
+exposeContainerIp: true
+# tag to use for images
+tags:
+   - com.cgi.ecm.reports/${project.artifactId}:${project.version}
+   - com.cgi.ecm.reports/${project.artifactId}:${timestamp}
+
+# or multiple tags
+# Run the container in privileged mode (default false)
+privileged: false
+container:
+    # a name for the container (if omitted, we will create an artifical one)
+    name: jaskula
+healthChecks:
+  logPatterns:
+     - pattern: "Started JaskulaApplication in "
+       timeout: 30000

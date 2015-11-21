@@ -1,0 +1,123 @@
+[ {
+      "applicationId" : "educamadrid",
+      "nodeId" : "emportal51",
+      "companyId" : 10158,
+      "viewer" : {
+        "userId" : 10154,
+        "userEmail" : "default@liferay.com",
+        "session" : "8418601718AF289E9BBB4601FC802408"
+      },
+      "page" : {
+        "pageId" : 11387,
+        "pageName" : "/multi",
+        "portlets" : [ {
+          "portletId" : "58",
+          "portletSetup" : { },
+          "additionalConfig" : null
+        }, {
+          "portletId" : "reportviewer_WAR_ibeacons",
+          "portletSetup" : { },
+          "additionalConfig" : null
+        }, {
+          "portletId" : "56_INSTANCE_w5uNtDt0Izrv",
+          "portletSetup" : {
+            "groupId" : [ "10181" ],
+            "articleId" : [ "WELCOME" ],
+            "portletSetupShowBorders" : [ "false" ]
+          },
+          "additionalConfig" : null
+        } ],
+        "additionalConfig" : null
+      },
+      "viewTimestamp" : "2015-07-20T09:38:55.290+0000",
+      "device" : {
+        "brand" : "unknown",
+        "browser" : "unknown",
+        "model" : "unknown",
+        "os" : null,
+        "osVersion" : null,
+        "pointingMethod" : "unknown",
+        "screenPhysicalSize" : {
+          "height" : -1.0,
+          "width" : -1.0
+        },
+        "screenResolution" : {
+          "height" : -1.0,
+          "width" : -1.0
+        },
+        "qwertyKeyboard" : null,
+        "tablet" : false
+      },
+      "processTime" : 1487,
+"parameters" : [ {
+        "key" : "p_l_id",
+        "value" : [ "11387" ]
+      }, {
+        "key" : "p_v_l_s_g_id",
+        "value" : [ "0" ]
+      } ],
+      "headers" : null,
+      "advanced" : null
+    },
+{
+      "applicationId" : "educamadrid",
+      "nodeId" : "emportal51",
+      "companyId" : 10158,
+      "viewer" : {
+        "userId" : 10154,
+        "userEmail" : "default@liferay.com",
+        "session" : "8418601718AF289E9BBB4601FC802408"
+      },
+      "page" : {
+        "pageId" : 11387,
+        "pageName" : "/multi",
+        "portlets" : [ {
+          "portletId" : "58",
+          "portletSetup" : { },
+          "additionalConfig" : null
+        }, {
+          "portletId" : "reportviewer_WAR_ibeacons",
+          "portletSetup" : { },
+          "additionalConfig" : null
+        }, {
+          "portletId" : "56_INSTANCE_w5uNtDt0Izrv",
+          "portletSetup" : {
+            "groupId" : [ "10181" ],
+            "articleId" : [ "WELCOME" ],
+            "portletSetupShowBorders" : [ "false" ]
+          },
+          "additionalConfig" : null
+        } ],
+        "additionalConfig" : null
+      },
+      "viewTimestamp" : "2015-07-20T010:38:55.290+0000",
+      "device" : {
+        "brand" : "unknown",
+        "browser" : "unknown",
+        "model" : "unknown",
+        "os" : null,
+        "osVersion" : null,
+        "pointingMethod" : "unknown",
+        "screenPhysicalSize" : {
+          "height" : -1.0,
+          "width" : -1.0
+        },
+        "screenResolution" : {
+          "height" : -1.0,
+          "width" : -1.0
+        },
+        "qwertyKeyboard" : null,
+        "tablet" : false
+      },
+      "processTime" : 1487,
+"parameters" : [ {
+        "key" : "p_l_id",
+        "value" : [ "11387" ]
+      }, {
+        "key" : "p_v_l_s_g_id",
+        "value" : [ "0" ]
+      } ],
+      "headers" : null,
+      "advanced" : null
+    }
+]

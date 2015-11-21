@@ -1,0 +1,186 @@
+= Jaskula
+Doc Writer <alvaro.gonzalez@cgi.com>
+2015-08-21
+:revnumber: {project-version}
+:example-caption!:
+ifndef::imagesdir[:imagesdir: images]
+ifndef::sourcedir[:sourcedir: ../../main/java]
+ifndef::resourcesdir[:resourcesdir: ../../main/resources]
+ifndef::groovydir[:groovydir: ../../main/groovy]
+ifndef::basepackage[:basepackage: {sourcedir}/com/cgi/ecm/reports/jaskula]
+ifndef::groovybasepackage[:groovybasepackage: {groovydir}/com/cgi/ecm/reports/jaskula]
+ifndef::projectdir[:projectdir: ../../..]
+
+Este es el manual de desarrollador para el módulo de envío de eventos, Jaskula.
+
+== Introduction
+
+Este módulo es un microservicio implementado con Spring Boot que viene con dos sabores:
+
+* Embebido dentro de un plugin de Liferay
+* Como microservicio stand-alone
+
+Se construye con maven:
+
+ $ mvn package
+
+Se puede ejecutar directamente con el plugin de spring-boot
+
+ $ mvn spring-boot:run
+
+Pero esto probablemente fallará ya que los parámetros por defecto de la base de datos son:
+
+[source]
+----
+include::{sourcedir}/../resources/default.ecm_reports.properties[tags=externalStore,indent=0]
+----
+
+y por lo tanto previamente deberían ser seteados. POr ejemplo, si se quiere cambiar el nombre de la base de datos a _dev_ bastaría con ejecutarlo con un system parameter:
+
+ $  mvn spring-boot:run -DMYSQL_ENV_MYSQL_DATABASE=dev
+
+Es mejor pasar los parámetros individuales que toda la url entero, aunque también se puede hacer:
+ $  mvn spring-boot:run -Decm.reports.jaskula.externalStore.url=jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true\&characterEncoding=UTF-8
+pero hay que tener cuidado y escapar el caracter _&_
+
+
+La documentación se genera con asciidoc automáticamente al construir el jar (está asociado a la fase generate-resources).
+El contenedor docker también se crea automáticamente al ejecutar _package_.
+
+El banner fue generado http://patorjk.com/software/taag/#p=display&f=Bloody&t=JASKULA[aquí].
+
+.¿Por qué 'Jaskula'?
+****
+La necesidad de extraer y nombrar este módulo como una parte independiente del liferay-reports-plugin surgió durante
+Julio de 2015 mientras se estaba disputando el Tour de Francia. Unos días antes habíamos etado viendo repeticiones de etapas míticas (como la de Indurain en
+Val Louron donde se vistió de amarillo por primera vez) y nos gustó recordar ciclistas con nombres míticos como Zenon Jaskula,
+Piotr Ugrumov, Cacaíto Rodríguez...
+****
+
+== Jaskula Pipeline
+
+El pipeline de Jaskula es el elemento común que provee throttling para las peticiones de evento y que se ejecuta tanto
+en el modo embebido como en el stand-alone:
+
+.Jaskula pipeline
+[ditaa]
+----
+            |
+            |Report Event
+            v
+ /------------------------\
+ | multipostInputChannel  |
+ \----------+-------------/
+            |
+            |
+            v
+ +----------------------+                           +-----------------------+         +---------------------------+
+ |  multiPostAggregator |     List < JSON >         |joinedServiceActivator |         |    PageViewRestService    |
+ + -------------------- +   /------------------\    + --------------------  |  REST   |                           |
+ |     _aggregator_     +-->+  joinedChannel   +--->| PageViewerClient      +=------->+  /multipost/pageViews     |
+ +----------------------+   \------------------/    | .savePageViews(List)  |   +---->|  /pageViews               |
+                                                    |                       |   |     +---------------------------+
+                            JSON                    |                       |   |
+     Report Event  /----------+-------------\       | PageViewerClient      +=--+
+     ------------->+ singlepostInputChannel +------>| .savePageView(json)   |
+                   \------------------------/       +-----------------------+
+
+----
+
+Esta configuración está separada en tres partes (por comodidad de configuración y de testeo):
+
+ * JaskulaPipeline.java
+ * jaskula-min.xml
+ * RestReportsActivators.java
+ 
+En *JaskulaPipeline* están definidos todos los canales y la mayoría de elementos. Se ha sacado fuera el Aggregator, porque
+actualmente la configuración Java de spring-integration tiene algunas carencias y hay cosas que no son mucho más fáciles
+hacer en xml:
+
+[source,xml]
+.jaskula-min.xml
+----
+include::{resourcesdir}/jaskula-min.xml[tags=beans,indent=0]
+----
+
+[NOTE]
+====
+La definición del bean _reaper_ se puede sacar a JaskulaPipeline aunque el scheduler se deje en este fichero.
+====
+
+[source,java]
+.JaskulaPipeline
+----
+include::{basepackage}/JaskulaPipeline.java[tags=beans,indent=0]
+----
+
+=== Jaskula stand-alone
+
+Los beans anteriores se utilizan en los dos modos, y no define como se metern los mensajes en los canales de entrada.
+Si la aplicación se lanza como stand-alone, sin embargo, se inicializa en *JaskulaApplication* que define como
+entran los eventos en el pipeline. Lo hace con un gateway desde un canal con almacenamiento externo _externalInputChannel_.
+Cualquier sistema externo puede meter mensajes en este canal persistido, el bridge los sacará y los meterá en el
+_multipostInputChannel_:
+
+[source,java]
+.Bridge
+----
+include::{basepackage}/JaskulaApplication.java[tags=bridge,indent=0]
+----
+
+La persistencia del canal se hace mediante un *JdbcChannelMessageStore*. No es la mejor forma de hacerlo pero sí la
+más sencilla. Esta implementación acepta varias bases de datos distintas. Por defecto viene configurado con MySql:
+
+[source,java]
+.JaskulaApplication
+----
+include::{basepackage}/JaskulaApplication.java[tags=messageStore,indent=0]
+----
+
+Para cambiar los valores de la base de datos basta con cambiar los parámetros:
+[source]
+ecm.reports.jaskula.externalStore.*
+
+
+Además, la aplicación se encarga de inicializar la base de datos si no contiene las tablas necesarias:
+[source,java]
+.JaskulaApplication
+----
+include::{basepackage}/JaskulaApplication.java[tags=init,indent=0]
+----
+[WARNING]
+====
+Actualmente se inicializa con los esquemas de mysql independientemente de la base de datos usada. Habría que mejorar
+esto para que se autodetecte el motor de base de datos que se usa.
+====
+
+=== Jaskula embebido
+
+Para poder usar *Jaskula* embebido en otro módulo, hay que crear mensajes cuyo payload sea un objeto JSON o un objeto
+ que se pueda convertir a JSON (un Map por ejemplo). Ahora, todos los mensajes se envían por el mismo canal de salida
+ hacia el PageViewRestService pero la idea es que lleven en la cabecera la información de a qué micro-servicio enviar.
+ El módulo que embeba Jaskula puede decidir no usar la funcionalidad de Throttling y enviarlo directamente al canal _singlepostInputChannel_.
+ Actualmente el módulo http://svn.lab.germinus.com/svn/liferay-reports/trunk/liferay-reports-portlet/[liferay-reports-portlet] usa Jaskula de ambos modos,
+ embebido o externo.
+
+== Throttling
+
+"In software, a throttling process, or a throttling controller as it is sometimes called, is a process responsible for
+regulating the rate at which application processing is conducted, either statically or dynamically"
+-- Throttling process, Wikipedia
+
+A parte de servir de control de flujo, Jaskula mejora el consumo de recursos al enviar varios eventos en la misma petición POST.
+Los parámetros de Throttling actualmente son fijos y para todos los eventos igual (20 eventos o 30 segundos). Sería interesante poder configurarlos por tipo de evento.
+
+== Docker
+
+Se usa el plugin de Alex Collins de maven docker para generar el contenedor. Los ficheros de configuración se encuentran
+en _src/main/docker_ . Ahí hay una carpeta por cada contenedor a crear. Actualmente sólo hay una (app) pero se podría
+crear una para la base de datos y para los micro-servicios REST para ejecutar pruebas de integración.
+
+[source,xml]
+.Maven docker plugin en el pom.xml
+----
+include::{projectdir}/pom.xml[tags=docker,indent=0]
+----
+

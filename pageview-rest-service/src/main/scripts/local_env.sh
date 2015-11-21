@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+export MONGO_PORT_27017_TCP_ADDR=127.0.0.1
+export MONGO_PORT_27017_TCP_PORT=27017

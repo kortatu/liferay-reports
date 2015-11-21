@@ -1,0 +1,161 @@
+= PageView Rest Service
+Doc Writer <alvaro.gonzalez@cgi.com>
+2015-08-20
+:revnumber: {project-version}
+:example-caption!:
+ifndef::imagesdir[:imagesdir: images]
+ifndef::sourcedir[:sourcedir: ../../main/java]
+ifndef::basepackage[:basepackage: {sourcedir}/com/cgi/ecm/reports/rest_service]
+ifndef::projectdir[:projectdir: ../../..]
+'''
+Este es el manual de desarrollador para el servicio de almacenamiento de eventos PageView
+
+== Introduction
+
+Este módulo es un microservicio con un api REST que permite almacenar eventos de tipo PageView.
+Contiene también una URL que acepta peticiones MULTI-POST, esto es un POST con contenido JSON que incluya una lista de elementos PageView en JSON.
+Se construye con gradle:
+
+ $ ./gradlew build
+
+La documentación con
+
+ $ ./gradlew asciidoc
+
+Y un contenedor docker con
+
+ $ ./gradlew distDocker
+
+Banner obtained from http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow[here]
+
+== MultiPost
+
+La URL de MultiPost nos permite mandar _batches_ de eventos PageView para mejorar el rendimiento y ahorrar en recursos.
+Para hacer un multipost hay que atacar a esta URL: http://127.0.0.1:8081/multiPosts/pageViews .
+El pipeline de proceso es el siguiente:
+
+.MutliPost pipeline
+[ditaa]
+----
+            |
+            |HTTP REST POST
+            v
+ +----------+-----------+
+ | MultiPostController  |
+ + -------------------- |
+ |    multiPost(List)   |
+ +----------+-----------+
+            |
+            |
+            v
+ +----------------------+                           +--------------------+
+ | MultiPostSplitService|     List < PageView >     |      Splitter      |            PageView
+ + -------------------- +   /------------------\    + ------------------ +  *   /------------------\
+ |     _gateway to_     +-->+ multiPostChannel |--->|MultiPostController |----->+ singlePostChannel|----+
+ +----------------------+   \------------------/    |      .split(List)  |      \------------------/    |
+                                                    +--------------------+                              |
+                                                                                                        v
+           +----------+                              +-------------------+      +-----------------------+---+
+           |{s}       |                              | PageViewRepository|      |     ServiceActivator      |
+           | MongoDB  +<-----------------------------+ ----------------- + save + ------------------------- +
+           |          |                              |  save(PageView)   +<-----+MultiPostController.       |
+           |          |                              |                   |      |     postSinglePageView(..)|
+           +----------+                              +--------+----------+      +---------------------------+
+                                                              |
+                                                              |    /-------------------------\
+                                                              +--->+singlePostResponseChannel|
+                                                                   \-------------------------/
+----
+
+Los canales están configurado en *MultiPostConfiguration* :
+
+[source,java]
+.MultiPostConfiguration
+----
+include::{basepackage}/multipost/MultiPostConfiguration.java[tags=contains,indent=0]
+----
+
+Y en *MultiPostController* están definidos los distintos message handlers. Cada uno de ellos escucha en un canal (multiPost escucha en el
+canal "web") y hace algo con el mensaje.
+
+[source,java]
+.MultiPostController
+----
+include::{basepackage}/multipost/MultiPostController.java[tags=pipeline,indent=0]
+----
+
+Tanto *multiPostChannel* como *singlePostChannel* son canales asíncronos, así que el control es inmediatamente devuelto
+al cliente REST antes de separar y procesar el guardado de los PageView individuales. Por tanto no puede saber si ha ido bien o no.
+He creado el canal de respuesta *singlePostResponseChannel* con la idea de que en el futuro un cliente pueda preguntar por
+el estado de proceso del batch enviado. Ahora mismo no hay ningún messageHandler escuchando y por tanto los mensajes que
+llegan a ese canal son ignorados.
+El canal *singlePostChannel* es un dispatcherChannel con un ejecutor definido como:
+
+[source,java]
+.singlePostChannel executor
+----
+include::{basepackage}/multipost/MultiPostConfiguration.java[tags=executor,indent=0]
+----
+Y por lo tanto cada PageView individual se guardará en una hebra distinta en paralelo. El pool de hebras se hará tan grande
+como sea necesario y se reutilizarán hebras previamente creadas. No espero que el pool supere el tamaño del batch en casi
+ninguna situación.
+
+== CSV exporter
+
+curl -H "Accept: text/csv" http://127.0.0.1:8081/reports/csvLines
+
+Para exportar los datos a QlickView, se desnormalizan los PageViews y se crea una fila de CSV por cada portlet en la página.
+Además, se quitan campos no relevantes y se formatean otros. La entidad que representa una fila es *PortletReportLine*.
+
+[source,java]
+.Algunas de las columnas del CSV en PortletReportLine
+----
+include::{basepackage}/csv/PortletReportLine.java[tags=fields,indent=1]
+----
+
+Está pendiente serializar o desdoblar el elemento Device del PageView (por el momento no se incluye en el CSV).
+
+Para poder convertir la lista de *PortletReportLine* en un CSV y devolverlo al cliente REST, hay que registrar en Spring Web MVC
+un *MessageConverter*:
+[source,java]
+.RestServiceApplication registra CSVMessageConverter
+----
+include::{basepackage}/RestServiceApplication.java[tags=csvMessageConverter,indent=0]
+----
+
+En CSVMessageConverter decimos qué contentType sabemos escribir y de qué o a qué clase. (En nuestro caso
+mediaType=text/csv y la clase es una lista de *PortletReportLine*)
+(también podríamos definir que sabemos leer CSV's de este tipo, pero no está implementado)
+
+[source,java]
+.CSVMessageConverter canWrite?
+----
+include::{basepackage}/csv/CSVMessageConverter.java[tags=canWrite,indent=0]
+----
+
+Cuando Spring Web REST detecta un objeto del modelo que tiene que renderizar pregunta a nuestro message converter con
+la clase a renderizar y el mediaType de la petición (cabecera Accept o extensión .csv en la cabecera). Si devolvemos true,
+nos da el control para que escribamos en el output la clase del modelo.
+
+[source,java]
+.CSVMessageConverter write
+----
+include::{basepackage}/csv/CSVMessageConverter.java[tags=write,indent=0]
+----
+
+La variable *header* es la lista de porperties del bean a escribir. También se usa como la primera línea de cabecera. Éstas están definidas como una constante:
+[source,java]
+.CSVMessageConverter header
+----
+include::{basepackage}/csv/CSVMessageConverter.java[tags=header,indent=0]
+----
+
+[TIP]
+====
+Para convertir a CSV usamos la librería:
+[source,gradle]
+----
+include::{projectdir}/build.gradle[tags=csvLibrary,indent=2]
+----
+====
+
