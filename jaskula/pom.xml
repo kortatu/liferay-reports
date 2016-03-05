@@ -138,17 +138,17 @@
             <plugin>
                 <groupId>com.alexecollins.docker</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>validate</goal>
-                            <goal>clean</goal>
-                            <goal>package</goal>
-                            <goal>start</goal>
-                            <goal>stop</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<goals>-->
+                            <!--<goal>validate</goal>-->
+                            <!--<goal>clean</goal>-->
+                            <!--<goal>package</goal>-->
+                            <!--<goal>start</goal>-->
+                            <!--<goal>stop</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
                 <configuration>
                     <host>http://localhost:4243</host>
                     <removeIntermediateImages>true</removeIntermediateImages>
