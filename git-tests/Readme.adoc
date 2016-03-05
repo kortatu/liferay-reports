@@ -1,2 +1,4 @@
 === Git tests
 Testing several git functionality
+
+Added a commit for testing
