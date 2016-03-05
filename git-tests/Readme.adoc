@@ -3,3 +3,6 @@ Testing several git functionality
 
 Added a commit for testing
 *An another one bites the dust*
+'''
+curl -X POST ...
+'''
